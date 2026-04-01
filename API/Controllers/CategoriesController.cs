@@ -19,5 +19,16 @@ namespace API.Controllers
             var category = await _categoryService.GetAllAsync();
             return Ok(category);
         }
+
+        [HttpGet("{id:int}")]
+        public async Task<IActionResult> GetById(int id)
+        {
+            var category = await _categoryService.GetByIdAsync(id);
+            if (category == null)
+                return NotFound();
+            return Ok(category);
+        
+        }
+
     }
 }
