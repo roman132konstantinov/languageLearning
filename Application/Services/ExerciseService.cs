@@ -1,9 +1,7 @@
 ﻿using Application.DTOs.Exercises;
 using Application.Interfaces;
 using Domain.Entities;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using Domain.Enums;
 
 namespace Application.Services
 {
@@ -26,7 +24,9 @@ namespace Application.Services
 
             var exercises = await _exerciseRepository.GetByLessonIdAsync(lessonId);
 
-            return exercises.Select(MapToResponse).ToList();
+            return exercises
+                .Select(MapToResponse)
+                .ToList();
         }
 
         public async Task<ExerciseResponseDto?> GetByIdAsync(int id)
@@ -57,7 +57,11 @@ namespace Application.Services
             {
                 LessonId = lessonId,
                 Question = dto.Question.Trim(),
-                Order = dto.Order
+                Order = dto.Order,
+                Type = dto.Type,
+                Explanation = string.IsNullOrWhiteSpace(dto.Explanation)
+                    ? null
+                    : dto.Explanation.Trim()
             };
 
             await _exerciseRepository.AddAsync(exercise);
@@ -85,6 +89,10 @@ namespace Application.Services
 
             exercise.Question = dto.Question.Trim();
             exercise.Order = dto.Order;
+            exercise.Type = dto.Type;
+            exercise.Explanation = string.IsNullOrWhiteSpace(dto.Explanation)
+                ? null
+                : dto.Explanation.Trim();
 
             _exerciseRepository.Update(exercise);
             await _exerciseRepository.SaveChangesAsync();
@@ -113,7 +121,9 @@ namespace Application.Services
                 Id = exercise.Id,
                 LessonId = exercise.LessonId,
                 Question = exercise.Question,
-                Order = exercise.Order
+                Order = exercise.Order,
+                Type = exercise.Type,
+                Explanation = exercise.Explanation
             };
         }
 
@@ -142,6 +152,12 @@ namespace Application.Services
 
             if (dto.Order <= 0)
                 throw new ArgumentException("Order must be greater than 0.");
+
+            if (!Enum.IsDefined(typeof(ExerciseType), dto.Type))
+                throw new ArgumentException("Invalid exercise type.");
+
+            if (dto.Explanation is not null && dto.Explanation.Trim().Length > 1000)
+                throw new ArgumentException("Explanation must not exceed 1000 characters.");
         }
 
         private static void ValidateUpdateDto(UpdateExerciseDto dto)
@@ -157,6 +173,12 @@ namespace Application.Services
 
             if (dto.Order <= 0)
                 throw new ArgumentException("Order must be greater than 0.");
+
+            if (!Enum.IsDefined(typeof(ExerciseType), dto.Type))
+                throw new ArgumentException("Invalid exercise type.");
+
+            if (dto.Explanation is not null && dto.Explanation.Trim().Length > 1000)
+                throw new ArgumentException("Explanation must not exceed 1000 characters.");
         }
     }
 }
