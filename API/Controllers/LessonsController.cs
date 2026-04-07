@@ -36,19 +36,23 @@ namespace API.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateLessonDto dto)
         {
-            var lesson = await _lessonService.CreateAsync(dto);
-            return Ok(lesson);
+            var createdLesson = await _lessonService.CreateAsync(dto);
+
+            return CreatedAtAction(
+                nameof(GetById),
+                new { id = createdLesson.Id },
+                createdLesson);
         }
 
         [HttpPut("{id:int}")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateLessonDto dto)
         {
-            var updated = await _lessonService.UpdateAsync(id, dto);
+            var updatedLesson = await _lessonService.UpdateAsync(id, dto);
 
-            if (!updated)
+            if (updatedLesson is null)
                 return NotFound();
 
-            return NoContent();
+            return Ok(updatedLesson);
         }
 
         [HttpDelete("{id:int}")]
@@ -63,4 +67,3 @@ namespace API.Controllers
         }
     }
 }
-
