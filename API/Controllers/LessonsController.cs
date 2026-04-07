@@ -1,4 +1,5 @@
 ﻿using Application.DTOs.Lessons;
+using Application.DTOs.LessonWords;
 using Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,10 +10,14 @@ namespace API.Controllers
     public class LessonsController : ControllerBase
     {
         private readonly ILessonService _lessonService;
+        private readonly ILessonWordService _lessonWordService;
 
-        public LessonsController(ILessonService lessonService)
+        public LessonsController(
+            ILessonService lessonService,
+            ILessonWordService lessonWordService)
         {
             _lessonService = lessonService;
+            _lessonWordService = lessonWordService;
         }
 
         [HttpGet]
@@ -59,6 +64,31 @@ namespace API.Controllers
         public async Task<IActionResult> Delete(int id)
         {
             var deleted = await _lessonService.DeleteAsync(id);
+
+            if (!deleted)
+                return NotFound();
+
+            return NoContent();
+        }
+
+        [HttpGet("{lessonId:int}/words")]
+        public async Task<IActionResult> GetLessonWords(int lessonId)
+        {
+            var words = await _lessonWordService.GetLessonWordsAsync(lessonId);
+            return Ok(words);
+        }
+
+        [HttpPost("{lessonId:int}/words")]
+        public async Task<IActionResult> AddWordToLesson(int lessonId, [FromBody] AddWordToLessonDto dto)
+        {
+            await _lessonWordService.AddWordToLessonAsync(lessonId, dto);
+            return NoContent();
+        }
+
+        [HttpDelete("{lessonId:int}/words/{wordId:int}")]
+        public async Task<IActionResult> RemoveWordFromLesson(int lessonId, int wordId)
+        {
+            var deleted = await _lessonWordService.RemoveWordFromLessonAsync(lessonId, wordId);
 
             if (!deleted)
                 return NotFound();

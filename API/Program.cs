@@ -19,7 +19,8 @@ builder.Services.AddScoped<IWordRepository, WordRepository>();
 builder.Services.AddScoped<IWordService, WordService>();
 builder.Services.AddScoped<ILessonRepository, LessonRepository>();
 builder.Services.AddScoped<ILessonService, LessonService>();
-
+builder.Services.AddScoped<ILessonWordRepository, LessonWordRepository>();
+builder.Services.AddScoped<ILessonWordService, LessonWordService>();
 
 
 
