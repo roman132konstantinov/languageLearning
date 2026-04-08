@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Microsoft.EntityFrameworkCore;
 using Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Infrastructure.Data.Configurations
@@ -23,8 +20,31 @@ namespace Infrastructure.Data.Configurations
             builder.Property(x => x.UserName)
                 .IsRequired()
                 .HasMaxLength(100);
-            
+
+            builder.Property(x => x.Role)
+                .IsRequired();
+
+            builder.Property(x => x.SecurityStamp)
+                .IsRequired()
+                .HasMaxLength(64);
+
+            builder.Property(x => x.EmailVerificationTokenHash)
+                .HasMaxLength(256);
+
+            builder.Property(x => x.PasswordResetTokenHash)
+                .HasMaxLength(256);
+
             builder.HasIndex(x => x.Email).IsUnique();
+
+            builder.HasMany(x => x.RefreshTokens)
+                .WithOne(x => x.User)
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.HasMany(x => x.AuthAuditLogs)
+                .WithOne(x => x.User)
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.SetNull);
         }
     }
 }

@@ -1,10 +1,12 @@
-﻿using Application.DTOs.ExerciseOption;
+using Application.DTOs.ExerciseOption;
 using Application.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers
 {
     [ApiController]
+    [Authorize]
     [Route("api/exercises/{exerciseId:int}/options")]
     public class ExerciseOptionsController : ControllerBase
     {
@@ -27,12 +29,15 @@ namespace API.Controllers
         {
             var option = await _exerciseOptionService.GetByIdAsync(id);
             if (option == null || option.ExerciseId != exerciseId)
+            {
                 return NotFound();
+            }
 
             return Ok(option);
         }
 
         [HttpPost]
+        [Authorize(Roles = "Admin,Editor")]
         public async Task<IActionResult> Create(int exerciseId, [FromBody] CreateExerciseOptionDto dto)
         {
             var created = await _exerciseOptionService.CreateAsync(exerciseId, dto);
@@ -40,31 +45,31 @@ namespace API.Controllers
         }
 
         [HttpPut("{id:int}")]
+        [Authorize(Roles = "Admin,Editor")]
         public async Task<IActionResult> Update(int exerciseId, int id, [FromBody] UpdateExerciseOptionDto dto)
         {
             var existingOption = await _exerciseOptionService.GetByIdAsync(id);
             if (existingOption == null || existingOption.ExerciseId != exerciseId)
+            {
                 return NotFound();
+            }
 
             var updated = await _exerciseOptionService.UpdateAsync(id, dto);
-            if (!updated)
-                return NotFound();
-
-            return NoContent();
+            return updated ? NoContent() : NotFound();
         }
 
         [HttpDelete("{id:int}")]
+        [Authorize(Roles = "Admin,Editor")]
         public async Task<IActionResult> Delete(int exerciseId, int id)
         {
             var existingOption = await _exerciseOptionService.GetByIdAsync(id);
             if (existingOption == null || existingOption.ExerciseId != exerciseId)
+            {
                 return NotFound();
+            }
 
             var deleted = await _exerciseOptionService.DeleteAsync(id);
-            if (!deleted)
-                return NotFound();
-
-            return NoContent();
+            return deleted ? NoContent() : NotFound();
         }
     }
 }

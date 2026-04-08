@@ -1,6 +1,89 @@
 @API_HostAddress = http://localhost:5174
+@email = admin@example.com
+@password = Password1
+@accessToken = paste-access-token-here
+@refreshToken = paste-refresh-token-here
 
-GET {{API_HostAddress}}/weatherforecast/
+### Health live
+GET {{API_HostAddress}}/health/live
 Accept: application/json
 
-###
+### Health ready
+GET {{API_HostAddress}}/health/ready
+Accept: application/json
+
+### Register
+POST {{API_HostAddress}}/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}",
+  "userName": "Admin User",
+  "level": 1
+}
+
+### Login
+POST {{API_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+### Refresh token
+POST {{API_HostAddress}}/api/auth/refresh-token
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+### Current user
+GET {{API_HostAddress}}/api/auth/me
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### Change password
+POST {{API_HostAddress}}/api/auth/change-password
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "currentPassword": "{{password}}",
+  "newPassword": "Password2"
+}
+
+### List lessons
+GET {{API_HostAddress}}/api/lessons
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### Submit exercise answer
+POST {{API_HostAddress}}/api/exercises/1/submit
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "optionId": 1
+}
+
+### Admin create category
+POST {{API_HostAddress}}/api/categories
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Travel",
+  "description": "Travel vocabulary."
+}
+
+### Logout
+POST {{API_HostAddress}}/api/auth/logout
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}

@@ -1,11 +1,13 @@
-﻿using Application.DTOs.Lessons;
+using Application.DTOs.Lessons;
 using Application.DTOs.LessonWords;
 using Application.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers
 {
     [ApiController]
+    [Authorize]
     [Route("api/[controller]")]
     public class LessonsController : ControllerBase
     {
@@ -31,44 +33,31 @@ namespace API.Controllers
         public async Task<IActionResult> GetById(int id)
         {
             var lesson = await _lessonService.GetByIdAsync(id);
-
-            if (lesson is null)
-                return NotFound();
-
-            return Ok(lesson);
+            return lesson is null ? NotFound() : Ok(lesson);
         }
 
         [HttpPost]
+        [Authorize(Roles = "Admin,Editor")]
         public async Task<IActionResult> Create([FromBody] CreateLessonDto dto)
         {
             var createdLesson = await _lessonService.CreateAsync(dto);
-
-            return CreatedAtAction(
-                nameof(GetById),
-                new { id = createdLesson.Id },
-                createdLesson);
+            return CreatedAtAction(nameof(GetById), new { id = createdLesson.Id }, createdLesson);
         }
 
         [HttpPut("{id:int}")]
+        [Authorize(Roles = "Admin,Editor")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateLessonDto dto)
         {
             var updatedLesson = await _lessonService.UpdateAsync(id, dto);
-
-            if (updatedLesson is null)
-                return NotFound();
-
-            return Ok(updatedLesson);
+            return updatedLesson is null ? NotFound() : Ok(updatedLesson);
         }
 
         [HttpDelete("{id:int}")]
+        [Authorize(Roles = "Admin,Editor")]
         public async Task<IActionResult> Delete(int id)
         {
             var deleted = await _lessonService.DeleteAsync(id);
-
-            if (!deleted)
-                return NotFound();
-
-            return NoContent();
+            return deleted ? NoContent() : NotFound();
         }
 
         [HttpGet("{lessonId:int}/words")]
@@ -79,6 +68,7 @@ namespace API.Controllers
         }
 
         [HttpPost("{lessonId:int}/words")]
+        [Authorize(Roles = "Admin,Editor")]
         public async Task<IActionResult> AddWordToLesson(int lessonId, [FromBody] AddWordToLessonDto dto)
         {
             await _lessonWordService.AddWordToLessonAsync(lessonId, dto);
@@ -86,14 +76,11 @@ namespace API.Controllers
         }
 
         [HttpDelete("{lessonId:int}/words/{wordId:int}")]
+        [Authorize(Roles = "Admin,Editor")]
         public async Task<IActionResult> RemoveWordFromLesson(int lessonId, int wordId)
         {
             var deleted = await _lessonWordService.RemoveWordFromLessonAsync(lessonId, wordId);
-
-            if (!deleted)
-                return NotFound();
-
-            return NoContent();
+            return deleted ? NoContent() : NotFound();
         }
     }
 }

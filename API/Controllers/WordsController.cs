@@ -1,10 +1,12 @@
-﻿using Application.DTOs.Words;
+using Application.DTOs.Words;
 using Application.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers
 {
     [ApiController]
+    [Authorize]
     [Route("api/[controller]")]
     public class WordsController : ControllerBase
     {
@@ -26,14 +28,11 @@ namespace API.Controllers
         public async Task<IActionResult> GetById(int id)
         {
             var word = await _wordService.GetByIdAsync(id);
-
-            if (word is null)
-                return NotFound();
-
-            return Ok(word);
+            return word is null ? NotFound() : Ok(word);
         }
 
         [HttpPost]
+        [Authorize(Roles = "Admin,Editor")]
         public async Task<IActionResult> Create([FromBody] CreateWordDto dto)
         {
             var id = await _wordService.CreateAsync(dto);
@@ -42,25 +41,19 @@ namespace API.Controllers
         }
 
         [HttpPut("{id:int}")]
+        [Authorize(Roles = "Admin,Editor")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateWordDto dto)
         {
             var updated = await _wordService.UpdateAsync(id, dto);
-
-            if (!updated)
-                return NotFound();
-
-            return NoContent();
+            return updated ? NoContent() : NotFound();
         }
 
         [HttpDelete("{id:int}")]
+        [Authorize(Roles = "Admin,Editor")]
         public async Task<IActionResult> Delete(int id)
         {
             var deleted = await _wordService.DeleteAsync(id);
-
-            if (!deleted)
-                return NotFound();
-
-            return NoContent();
+            return deleted ? NoContent() : NotFound();
         }
     }
 }

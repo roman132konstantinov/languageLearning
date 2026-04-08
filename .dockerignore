@@ -1,0 +1,14 @@
+**/bin/
+**/obj/
+**/.vs/
+**/.vscode/
+**/*.user
+**/*.suo
+**/*.db
+**/*.log
+.git
+.gitignore
+api-build.log
+api-restore.log
+infra-build.log
+infra-restore.log

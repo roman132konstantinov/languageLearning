@@ -119,18 +119,6 @@ namespace Infrastructure.Data
             AddOptions(options, exercises[11].Id, "оқу", "жазу", "отыру", "келу", 0);
 
             await context.ExerciseOptions.AddRangeAsync(options, cancellationToken);
-
-            var demoUser = new User
-            {
-                Email = "demo@kazakh.app",
-                PasswordHash = "DEMO_HASH",
-                UserName = "Demo Student",
-                Level = LanguageLevel.A1,
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            await context.Users.AddAsync(demoUser, cancellationToken);
             await context.SaveChangesAsync(cancellationToken);
 
             logger.LogInformation("Demo data seeded successfully.");

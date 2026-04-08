@@ -21,6 +21,8 @@ namespace Infrastructure.Data
         public DbSet<ExerciseOption> ExerciseOptions => Set<ExerciseOption>();
         public DbSet<UserWordProgress> UserWordProgresses => Set<UserWordProgress>();
         public DbSet<UserLessonProgress> UserLessonProgresses => Set<UserLessonProgress>();
+        public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+        public DbSet<AuthAuditLog> AuthAuditLogs => Set<AuthAuditLog>();
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
