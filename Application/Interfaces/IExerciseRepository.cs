@@ -8,6 +8,7 @@ namespace Application.Interfaces
     public interface IExerciseRepository
     {
         Task<bool> LessonExistsAsync(int lessonId);
+        Task<bool> WordExistsAsync(int wordId);
         Task<List<Exercise>> GetByLessonIdAsync(int lessonId);
         Task<Exercise?> GetByIdAsync(int id);
         Task<Exercise?> GetByIdWithLessonAsync(int id);

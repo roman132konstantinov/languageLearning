@@ -22,6 +22,11 @@ namespace Infrastructure.Repositories
             return await _context.Lessons.AnyAsync(x => x.Id == lessonId);
         }
 
+        public async Task<bool> WordExistsAsync(int wordId)
+        {
+            return await _context.Words.AnyAsync(x => x.Id == wordId);
+        }
+
         public async Task<List<Exercise>> GetByLessonIdAsync(int lessonId)
         {
             return await _context.Exercises
@@ -34,7 +39,7 @@ namespace Infrastructure.Repositories
         public async Task<Exercise?> GetByIdAsync(int id)
         {
             return await _context.Exercises
-                .AsNoTracking()
+                .Include(x => x.Options)
                 .FirstOrDefaultAsync(x => x.Id == id);
         }
 

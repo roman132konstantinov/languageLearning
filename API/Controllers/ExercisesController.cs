@@ -1,4 +1,5 @@
-﻿using Application.DTOs.Exercises;
+﻿using Application.DTOs.ExerciseOption;
+using Application.DTOs.Exercises;
 using Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -64,6 +65,13 @@ namespace API.Controllers
                 return NotFound();
 
             return NoContent();
+        }
+
+        [HttpPost("exercises/{id:int}/submit")]
+        public async Task<IActionResult> SubmitAnswer(int id, [FromBody] SubmitAnswerDto dto)
+        {
+            var result = await _exerciseService.SubmitAnswerAsync(id, dto);
+            return Ok(result);
         }
     }
 }

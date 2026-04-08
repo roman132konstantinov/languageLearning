@@ -19,6 +19,10 @@ namespace Infrastructure.Data.Configurations
             builder.HasOne(x => x.Lesson)
                 .WithMany(l => l.Exercises)
                 .HasForeignKey(x => x.LessonId);
+            builder.HasOne(x => x.Word)
+               .WithMany(x => x.Exercises)
+              .HasForeignKey(x => x.WordId)
+              .OnDelete(DeleteBehavior.SetNull);
 
         }
     }

@@ -1,4 +1,5 @@
-﻿using Application.DTOs.Exercises;
+﻿using Application.DTOs.ExerciseOption;
+using Application.DTOs.Exercises;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -12,5 +13,6 @@ namespace Application.Interfaces
         Task<ExerciseResponseDto> CreateAsync(int lessonId, CreateExerciseDto dto);
         Task<ExerciseResponseDto?> UpdateAsync(int id, UpdateExerciseDto dto);
         Task<bool> DeleteAsync(int id);
+        Task<SubmitAnswerResultDto> SubmitAnswerAsync(int exerciseId, SubmitAnswerDto dto);
     }
 }

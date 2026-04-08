@@ -22,6 +22,7 @@ namespace Domain.Entities
         public bool IsActive { get; set; } = true;
 
         public int CategoryId { get; set; }
+        public ICollection<Exercise> Exercises { get; set; } = new List<Exercise>();
         public Category Category { get; set; } = null!;
 
         public ICollection<LessonWord> LessonWords { get; set; } = new List<LessonWord>();

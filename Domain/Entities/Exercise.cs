@@ -18,6 +18,8 @@ namespace Domain.Entities
         public string? Explanation { get; set; }
 
         public int Order { get; set; }
+        public int? WordId { get; set; }
+        public Word? Word { get; set; }
 
         public ICollection<ExerciseOption> Options { get; set; } = new List<ExerciseOption>();
     }

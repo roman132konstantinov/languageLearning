@@ -1,4 +1,5 @@
-﻿using Application.DTOs.Exercises;
+using Application.DTOs.ExerciseOption;
+using Application.DTOs.Exercises;
 using Application.Interfaces;
 using Domain.Entities;
 using Domain.Enums;
@@ -8,10 +9,12 @@ namespace Application.Services
     public class ExerciseService : IExerciseService
     {
         private readonly IExerciseRepository _exerciseRepository;
+        private readonly IUserWordProgressService _userWordProgressService;
 
-        public ExerciseService(IExerciseRepository exerciseRepository)
+        public ExerciseService(IExerciseRepository exerciseRepository, IUserWordProgressService userWordProgressService)
         {
             _exerciseRepository = exerciseRepository;
+            _userWordProgressService = userWordProgressService;
         }
 
         public async Task<List<ExerciseResponseDto>> GetLessonExercisesAsync(int lessonId)
@@ -53,12 +56,20 @@ namespace Application.Services
             if (duplicateOrder)
                 throw new ArgumentException("Exercise with this order already exists in the lesson.");
 
+            if (dto.WordId.HasValue)
+            {
+                var wordExists = await _exerciseRepository.WordExistsAsync(dto.WordId.Value);
+                if (!wordExists)
+                    throw new ArgumentException("Word not found.");
+            }
+
             var exercise = new Exercise
             {
                 LessonId = lessonId,
                 Question = dto.Question.Trim(),
                 Order = dto.Order,
                 Type = dto.Type,
+                WordId = dto.WordId,
                 Explanation = string.IsNullOrWhiteSpace(dto.Explanation)
                     ? null
                     : dto.Explanation.Trim()
@@ -87,9 +98,17 @@ namespace Application.Services
             if (duplicateOrder)
                 throw new ArgumentException("Exercise with this order already exists in the lesson.");
 
+            if (dto.WordId.HasValue)
+            {
+                var wordExists = await _exerciseRepository.WordExistsAsync(dto.WordId.Value);
+                if (!wordExists)
+                    throw new ArgumentException("Word not found.");
+            }
+
             exercise.Question = dto.Question.Trim();
             exercise.Order = dto.Order;
             exercise.Type = dto.Type;
+            exercise.WordId = dto.WordId;
             exercise.Explanation = string.IsNullOrWhiteSpace(dto.Explanation)
                 ? null
                 : dto.Explanation.Trim();
@@ -114,6 +133,55 @@ namespace Application.Services
             return true;
         }
 
+        public async Task<SubmitAnswerResultDto> SubmitAnswerAsync(int exerciseId, SubmitAnswerDto dto)
+        {
+            ValidateExerciseId(exerciseId);
+
+            if (dto is null)
+                throw new ArgumentNullException(nameof(dto));
+
+            if (dto.OptionId <= 0)
+                throw new ArgumentException("OptionId must be greater than 0.");
+
+            if (dto.UserId.HasValue && dto.UserId.Value <= 0)
+                throw new ArgumentException("UserId must be greater than 0.");
+
+            var exercise = await _exerciseRepository.GetByIdAsync(exerciseId);
+
+            if (exercise == null)
+                throw new ArgumentException("Exercise not found.");
+
+            if (exercise.Type != ExerciseType.ChooseAnsver)
+                throw new ArgumentException("This exercise does not support options.");
+
+            var selectedOption = exercise.Options
+                .FirstOrDefault(x => x.Id == dto.OptionId);
+
+            if (selectedOption == null)
+                throw new ArgumentException("Option not found.");
+
+            var correctOptions = exercise.Options
+                .Where(x => x.IsCorrect)
+                .ToList();
+
+            if (correctOptions.Count != 1)
+                throw new InvalidOperationException("Exercise must have exactly one correct option configured.");
+
+            var isCorrect = selectedOption.IsCorrect;
+
+            if (exercise.WordId.HasValue && dto.UserId.HasValue)
+            {
+                await _userWordProgressService.UpdateAsync(dto.UserId.Value, exercise.WordId.Value, isCorrect);
+            }
+
+            return new SubmitAnswerResultDto
+            {
+                IsCorrect = isCorrect,
+                CorrectAnswer = isCorrect ? null : correctOptions[0].Text,
+                Explanation = exercise.Explanation
+            };
+        }
+
         private static ExerciseResponseDto MapToResponse(Exercise exercise)
         {
             return new ExerciseResponseDto
@@ -123,7 +191,8 @@ namespace Application.Services
                 Question = exercise.Question,
                 Order = exercise.Order,
                 Type = exercise.Type,
-                Explanation = exercise.Explanation
+                Explanation = exercise.Explanation,
+                WordId = exercise.WordId
             };
         }
 

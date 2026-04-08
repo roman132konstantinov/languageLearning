@@ -11,5 +11,6 @@ namespace Application.DTOs.Exercises
         public int Order { get; set; }
         public ExerciseType Type { get; set; }
         public string? Explanation { get; set; }
+        public int? WordId { get; set; }
     }
 }
