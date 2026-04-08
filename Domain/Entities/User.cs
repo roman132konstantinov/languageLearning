@@ -11,7 +11,7 @@ namespace Domain.Entities
         public string Email { get; set; } = string.Empty;
         public string PasswordHash { get; set; } = string.Empty;
         public string UserName { get; set; } = string.Empty;
-        public LanguageLevel Level { get; set; } = LanguageLevel.Begginer;
+        public LanguageLevel Level { get; set; } = LanguageLevel.Beginner;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public bool IsActive { get; set; } = true;
 

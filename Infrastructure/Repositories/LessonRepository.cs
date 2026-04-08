@@ -1,9 +1,6 @@
-﻿using Application.Interfaces;
+using Application.Interfaces;
 using Domain.Entities;
 using Infrastructure.Data;
-using System;
-using System.Collections.Generic;
-using System.Text;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Repositories
@@ -29,6 +26,13 @@ namespace Infrastructure.Repositories
         {
             return await _db.Lessons
                 .FirstOrDefaultAsync(x => x.Id == id);
+        }
+
+        public async Task<bool> ExistsWithOrderAsync(int order, int? excludeLessonId = null)
+        {
+            return await _db.Lessons
+                .AnyAsync(x => x.Order == order
+                    && (!excludeLessonId.HasValue || x.Id != excludeLessonId.Value));
         }
 
         public async Task AddAsync(Lesson lesson)

@@ -6,9 +6,11 @@ namespace Domain.Enums
 {
     public enum LanguageLevel
     {
-        Begginer = 0,
+        Beginner = 0,
+        Begginer = Beginner,
         A1 = 1,
         A2 = 2,
-        A3 = 3
+        B1 = 3,
+        A3 = B1
     }
 }

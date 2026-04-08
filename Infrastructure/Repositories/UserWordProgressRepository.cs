@@ -1,9 +1,6 @@
-﻿using Application.Interfaces;
+using Application.Interfaces;
 using Domain.Entities;
 using Infrastructure.Data;
-using System;
-using System.Collections.Generic;
-using System.Text;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Repositories
@@ -25,7 +22,18 @@ namespace Infrastructure.Repositories
         public async Task<UserWordProgress?> GetByUserAndWordAsync(int userId, int wordId)
         {
             return await _context.UserWordProgresses
+                .Include(x => x.Word)
                 .FirstOrDefaultAsync(x => x.UserId == userId && x.WordId == wordId);
+        }
+
+        public async Task<List<UserWordProgress>> GetByUserAsync(int userId)
+        {
+            return await _context.UserWordProgresses
+                .AsNoTracking()
+                .Include(x => x.Word)
+                .Where(x => x.UserId == userId)
+                .OrderBy(x => x.Word.KazakhText)
+                .ToListAsync();
         }
 
         public async Task AddAsync(UserWordProgress progress)

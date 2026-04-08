@@ -1,5 +1,6 @@
 using Application.DTOs.ExerciseOption;
 using Application.Interfaces;
+using Application.Common.Exceptions;
 using Domain.Entities;
 using Domain.Enums;
 
@@ -17,6 +18,9 @@ namespace Application.Services
         public async Task<List<ExerciseOptionResponseDto>> GetByExerciseIdAsync(int exerciseId)
         {
             ValidateExerciseId(exerciseId);
+
+            if (!await _exerciseOptionRepository.ExerciseExistsAsync(exerciseId))
+                throw new NotFoundException("Exercise not found.");
 
             var options = await _exerciseOptionRepository.GetByExerciseIdAsync(exerciseId);
 
@@ -41,13 +45,13 @@ namespace Application.Services
 
             var exerciseType = await _exerciseOptionRepository.GetExerciseTypeAsync(exerciseId);
             if (exerciseType is null)
-                throw new ArgumentException("Exercise not found.");
+                throw new NotFoundException("Exercise not found.");
 
             if (exerciseType != ExerciseType.ChooseAnsver)
-                throw new ArgumentException("Options are supported only for choose-answer exercises.");
+                throw new ValidationException("Options are supported only for choose-answer exercises.");
 
             if (dto.IsCorrect && await _exerciseOptionRepository.HasCorrectOptionAsync(exerciseId))
-                throw new ArgumentException("Only one correct option is allowed for an exercise.");
+                throw new ConflictException("Only one correct option is allowed for an exercise.");
 
             var option = new ExerciseOption
             {
@@ -73,10 +77,10 @@ namespace Application.Services
 
             var exerciseType = await _exerciseOptionRepository.GetExerciseTypeAsync(option.ExerciseId);
             if (exerciseType != ExerciseType.ChooseAnsver)
-                throw new ArgumentException("Options are supported only for choose-answer exercises.");
+                throw new ValidationException("Options are supported only for choose-answer exercises.");
 
             if (dto.IsCorrect && await _exerciseOptionRepository.HasCorrectOptionAsync(option.ExerciseId, id))
-                throw new ArgumentException("Only one correct option is allowed for an exercise.");
+                throw new ConflictException("Only one correct option is allowed for an exercise.");
 
             option.Text = dto.Text.Trim();
             option.IsCorrect = dto.IsCorrect;
@@ -115,37 +119,37 @@ namespace Application.Services
         private static void ValidateExerciseId(int exerciseId)
         {
             if (exerciseId <= 0)
-                throw new ArgumentException("ExerciseId must be greater than 0.");
+                throw new ValidationException("ExerciseId must be greater than 0.");
         }
 
         private static void ValidateOptionId(int id)
         {
             if (id <= 0)
-                throw new ArgumentException("OptionId must be greater than 0.");
+                throw new ValidationException("OptionId must be greater than 0.");
         }
 
         private static void ValidateCreateDto(CreateExerciseOptionDto dto)
         {
             if (dto is null)
-                throw new ArgumentNullException(nameof(dto));
+                throw new ValidationException("Exercise option payload is required.");
 
             if (string.IsNullOrWhiteSpace(dto.Text))
-                throw new ArgumentException("Option text is required.");
+                throw new ValidationException("Option text is required.");
 
             if (dto.Text.Trim().Length > 300)
-                throw new ArgumentException("Option text must not exceed 300 characters.");
+                throw new ValidationException("Option text must not exceed 300 characters.");
         }
 
         private static void ValidateUpdateDto(UpdateExerciseOptionDto dto)
         {
             if (dto is null)
-                throw new ArgumentNullException(nameof(dto));
+                throw new ValidationException("Exercise option payload is required.");
 
             if (string.IsNullOrWhiteSpace(dto.Text))
-                throw new ArgumentException("Option text is required.");
+                throw new ValidationException("Option text is required.");
 
             if (dto.Text.Trim().Length > 300)
-                throw new ArgumentException("Option text must not exceed 300 characters.");
+                throw new ValidationException("Option text must not exceed 300 characters.");
         }
     }
 }

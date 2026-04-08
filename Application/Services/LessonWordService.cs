@@ -1,9 +1,7 @@
-﻿using Application.DTOs.LessonWords;
+using Application.Common.Exceptions;
+using Application.DTOs.LessonWords;
 using Application.Interfaces;
 using Domain.Entities;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Application.Services
 {
@@ -20,15 +18,11 @@ namespace Application.Services
         {
             ValidateLessonId(lessonId);
 
-            var lessonExists = await _lessonWordRepository.LessonExistsAsync(lessonId);
-            if (!lessonExists)
-                throw new ArgumentException("Lesson not found.");
+            if (!await _lessonWordRepository.LessonExistsAsync(lessonId))
+                throw new NotFoundException("Lesson not found.");
 
             var lessonWords = await _lessonWordRepository.GetLessonWordsAsync(lessonId);
-
-            return lessonWords
-                .Select(MapToResponse)
-                .ToList();
+            return lessonWords.Select(MapToResponse).ToList();
         }
 
         public async Task AddWordToLessonAsync(int lessonId, AddWordToLessonDto dto)
@@ -36,22 +30,23 @@ namespace Application.Services
             ValidateLessonId(lessonId);
             ValidateAddDto(dto);
 
-            var lessonExists = await _lessonWordRepository.LessonExistsAsync(lessonId);
-            if (!lessonExists)
-                throw new ArgumentException("Lesson not found.");
+            if (!await _lessonWordRepository.LessonExistsAsync(lessonId))
+                throw new NotFoundException("Lesson not found.");
 
-            var wordExists = await _lessonWordRepository.WordExistsAsync(dto.WordId);
-            if (!wordExists)
-                throw new ArgumentException("Word not found.");
+            if (!await _lessonWordRepository.WordExistsAsync(dto.WordId))
+                throw new NotFoundException("Word not found.");
 
-            var alreadyExists = await _lessonWordRepository.ExistsAsync(lessonId, dto.WordId);
-            if (alreadyExists)
-                throw new ArgumentException("This word is already added to the lesson.");
+            if (await _lessonWordRepository.ExistsAsync(lessonId, dto.WordId))
+                throw new ConflictException("This word is already added to the lesson.");
+
+            if (await _lessonWordRepository.ExistsWithOrderAsync(lessonId, dto.Order))
+                throw new ConflictException("Lesson already contains a word with this order.");
 
             var lessonWord = new LessonWord
             {
                 LessonId = lessonId,
-                WordId = dto.WordId
+                WordId = dto.WordId,
+                Order = dto.Order
             };
 
             await _lessonWordRepository.AddAsync(lessonWord);
@@ -78,6 +73,7 @@ namespace Application.Services
             return new LessonWordResponseDto
             {
                 WordId = lessonWord.WordId,
+                Order = lessonWord.Order,
                 KazakhText = lessonWord.Word.KazakhText,
                 RussianTranslation = lessonWord.Word.RussianTranslation,
                 Pronunciation = lessonWord.Word.Pronunciation,
@@ -91,22 +87,25 @@ namespace Application.Services
         private static void ValidateLessonId(int lessonId)
         {
             if (lessonId <= 0)
-                throw new ArgumentException("LessonId must be greater than 0.");
+                throw new ValidationException("LessonId must be greater than 0.");
         }
 
         private static void ValidateWordId(int wordId)
         {
             if (wordId <= 0)
-                throw new ArgumentException("WordId must be greater than 0.");
+                throw new ValidationException("WordId must be greater than 0.");
         }
 
         private static void ValidateAddDto(AddWordToLessonDto dto)
         {
             if (dto is null)
-                throw new ArgumentNullException(nameof(dto));
+                throw new ValidationException("Lesson word payload is required.");
 
             if (dto.WordId <= 0)
-                throw new ArgumentException("WordId must be greater than 0.");
+                throw new ValidationException("WordId must be greater than 0.");
+
+            if (dto.Order <= 0)
+                throw new ValidationException("Order must be greater than 0.");
         }
     }
 }

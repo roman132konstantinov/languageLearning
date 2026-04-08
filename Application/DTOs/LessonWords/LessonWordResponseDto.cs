@@ -7,6 +7,7 @@ namespace Application.DTOs.LessonWords
     public class LessonWordResponseDto
     {
         public int WordId { get; set; }
+        public int Order { get; set; }
         public string KazakhText { get; set; } = string.Empty;
         public string RussianTranslation { get; set; } = string.Empty;
         public string? Pronunciation { get; set; }

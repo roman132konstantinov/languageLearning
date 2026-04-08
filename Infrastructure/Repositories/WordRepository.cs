@@ -1,4 +1,4 @@
-﻿using Application.Interfaces;
+using Application.Interfaces;
 using Domain.Entities;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -18,6 +18,7 @@ namespace Infrastructure.Repositories
         {
             return await _db.Words
                 .AsNoTracking()
+                .OrderBy(x => x.KazakhText)
                 .ToListAsync();
         }
 
@@ -25,6 +26,11 @@ namespace Infrastructure.Repositories
         {
             return await _db.Words
                 .FirstOrDefaultAsync(x => x.Id == id);
+        }
+
+        public async Task<bool> CategoryExistsAsync(int categoryId)
+        {
+            return await _db.Categories.AnyAsync(x => x.Id == categoryId);
         }
 
         public async Task AddAsync(Word word)

@@ -9,6 +9,7 @@ namespace Application.Interfaces
     {
         Task<List<Lesson>> GetAllAsync();
         Task<Lesson?> GetByIdAsync(int id);
+        Task<bool> ExistsWithOrderAsync(int order, int? excludeLessonId = null);
         Task AddAsync(Lesson lesson);
         void Update(Lesson lesson);
         void Delete(Lesson lesson);

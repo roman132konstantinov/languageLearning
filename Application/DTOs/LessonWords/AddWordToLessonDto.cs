@@ -8,5 +8,6 @@ namespace Application.DTOs.LessonWords
     public class AddWordToLessonDto
     {
         public int WordId { get; set; }
+        public int Order { get; set; }
     }
 }

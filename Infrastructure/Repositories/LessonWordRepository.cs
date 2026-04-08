@@ -1,11 +1,7 @@
-﻿using Application.Interfaces;
+using Application.Interfaces;
 using Domain.Entities;
 using Infrastructure.Data;
-using System;
-using System.Collections.Generic;
-using System.Text;
 using Microsoft.EntityFrameworkCore;
-
 
 namespace Infrastructure.Repositories
 {
@@ -34,6 +30,14 @@ namespace Infrastructure.Repositories
                 .AnyAsync(x => x.LessonId == lessonId && x.WordId == wordId);
         }
 
+        public async Task<bool> ExistsWithOrderAsync(int lessonId, int order, int? excludeWordId = null)
+        {
+            return await _context.LessonWords
+                .AnyAsync(x => x.LessonId == lessonId
+                    && x.Order == order
+                    && (!excludeWordId.HasValue || x.WordId != excludeWordId.Value));
+        }
+
         public async Task AddAsync(LessonWord lessonWord)
         {
             await _context.LessonWords.AddAsync(lessonWord);
@@ -56,7 +60,8 @@ namespace Infrastructure.Repositories
                 .AsNoTracking()
                 .Include(x => x.Word)
                 .Where(x => x.LessonId == lessonId)
-                .OrderBy(x => x.Word.KazakhText)
+                .OrderBy(x => x.Order)
+                .ThenBy(x => x.Word.KazakhText)
                 .ToListAsync();
         }
 

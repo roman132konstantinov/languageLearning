@@ -1,54 +1,93 @@
-﻿using Application.DTOs.Category;
+using Application.Common.Exceptions;
+using Application.DTOs.Category;
 using Application.Interfaces;
 using Domain.Entities;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Application.Services
 {
     public class CategoryService : ICategoryService
     {
-        private readonly ICategoryRepository _categoreRepository;
+        private readonly ICategoryRepository _categoryRepository;
 
         public CategoryService(ICategoryRepository categoryRepository)
         {
-            _categoreRepository = categoryRepository;
+            _categoryRepository = categoryRepository;
         }
+
         public async Task<List<CategoryResponseDto>> GetAllAsync()
         {
-            var categoryes = await _categoreRepository.GetAllAsync();
+            var categories = await _categoryRepository.GetAllAsync();
 
-            return categoryes.Select(x => new CategoryResponseDto
-            {
-                Id = x.Id,
-                Name = x.Name,
-                Description = x.Description
-            }).ToList();
+            return categories.Select(MapToResponse).ToList();
         }
 
         public async Task<CategoryResponseDto?> GetByIdAsync(int id)
         {
-            var category = await _categoreRepository.GetByIdAsync(id);
-            if (category is null)
-                return null;
-            return new CategoryResponseDto
-            {
-                Id = category.Id,
-                Name = category.Name,
-                Description = category.Description
-            };
+            ValidateCategoryId(id);
+
+            var category = await _categoryRepository.GetByIdAsync(id);
+            return category is null ? null : MapToResponse(category);
         }
 
         public async Task<CategoryResponseDto> CreateAsync(CreateCategoryDto dto)
         {
+            ValidateCreateDto(dto);
+
+            if (await _categoryRepository.ExistsByNameAsync(dto.Name))
+                throw new ConflictException("Category with this name already exists.");
+
             var category = new Category
             {
-                Name = dto.Name,
-                Description = dto.Description
+                Name = dto.Name.Trim(),
+                Description = string.IsNullOrWhiteSpace(dto.Description) ? null : dto.Description.Trim()
             };
-            await _categoreRepository.AddAsync(category);
-            await _categoreRepository.SaveChangesAsync();
+
+            await _categoryRepository.AddAsync(category);
+            await _categoryRepository.SaveChangesAsync();
+
+            return MapToResponse(category);
+        }
+
+        public async Task<bool> UpdateAsync(int id, UpdateCategoryDto dto)
+        {
+            ValidateCategoryId(id);
+            ValidateUpdateDto(dto);
+
+            var category = await _categoryRepository.GetByIdAsync(id);
+            if (category is null)
+                return false;
+
+            if (await _categoryRepository.ExistsByNameAsync(dto.Name, id))
+                throw new ConflictException("Category with this name already exists.");
+
+            category.Name = dto.Name.Trim();
+            category.Description = string.IsNullOrWhiteSpace(dto.Description) ? null : dto.Description.Trim();
+
+            _categoryRepository.Update(category);
+            await _categoryRepository.SaveChangesAsync();
+
+            return true;
+        }
+
+        public async Task<bool> DeleteAsync(int id)
+        {
+            ValidateCategoryId(id);
+
+            var category = await _categoryRepository.GetByIdAsync(id);
+            if (category is null)
+                return false;
+
+            if (await _categoryRepository.HasWordsAsync(id))
+                throw new ConflictException("Category cannot be deleted while it still contains words.");
+
+            _categoryRepository.Delete(category);
+            await _categoryRepository.SaveChangesAsync();
+
+            return true;
+        }
+
+        private static CategoryResponseDto MapToResponse(Category category)
+        {
             return new CategoryResponseDto
             {
                 Id = category.Id,
@@ -57,26 +96,40 @@ namespace Application.Services
             };
         }
 
-        public async Task<bool> UpdateAsync(int id, UpdateCategoryDto dto)
+        private static void ValidateCategoryId(int id)
         {
-            var category = await _categoreRepository.GetByIdAsync(id);
-            if (category is null)
-                return false;
-            category.Description = dto.Description;
-            category.Name = dto.Name;
-            _categoreRepository.Update(category);
-            await _categoreRepository.SaveChangesAsync();
-            return true;
+            if (id <= 0)
+                throw new ValidationException("CategoryId must be greater than 0.");
         }
-        public async Task<bool> DeleteAsync(int id)
-        {
-            var category = await _categoreRepository.GetByIdAsync(id);
-            if (category is null)
-                return false;
-            _categoreRepository.Delete(category);
-            await _categoreRepository.SaveChangesAsync();
 
-            return true;
+        private static void ValidateCreateDto(CreateCategoryDto dto)
+        {
+            if (dto is null)
+                throw new ValidationException("Category payload is required.");
+
+            if (string.IsNullOrWhiteSpace(dto.Name))
+                throw new ValidationException("Category name is required.");
+
+            if (dto.Name.Trim().Length > 100)
+                throw new ValidationException("Category name must not exceed 100 characters.");
+
+            if (dto.Description is not null && dto.Description.Trim().Length > 500)
+                throw new ValidationException("Category description must not exceed 500 characters.");
+        }
+
+        private static void ValidateUpdateDto(UpdateCategoryDto dto)
+        {
+            if (dto is null)
+                throw new ValidationException("Category payload is required.");
+
+            if (string.IsNullOrWhiteSpace(dto.Name))
+                throw new ValidationException("Category name is required.");
+
+            if (dto.Name.Trim().Length > 100)
+                throw new ValidationException("Category name must not exceed 100 characters.");
+
+            if (dto.Description is not null && dto.Description.Trim().Length > 500)
+                throw new ValidationException("Category description must not exceed 500 characters.");
         }
     }
 }

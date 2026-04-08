@@ -37,7 +37,8 @@ namespace API.Controllers
         public async Task<IActionResult> Create([FromBody] CreateWordDto dto)
         {
             var id = await _wordService.CreateAsync(dto);
-            return CreatedAtAction(nameof(GetById), new { id }, null);
+            var createdWord = await _wordService.GetByIdAsync(id);
+            return CreatedAtAction(nameof(GetById), new { id }, createdWord);
         }
 
         [HttpPut("{id:int}")]

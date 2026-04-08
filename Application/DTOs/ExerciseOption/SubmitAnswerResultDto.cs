@@ -9,5 +9,7 @@ namespace Application.DTOs.ExerciseOption
         public bool IsCorrect { get; set; }
         public string? CorrectAnswer { get; set; }
         public string? Explanation { get; set; }
+        public bool? IsLessonCompleted { get; set; }
+        public int? LessonScore { get; set; }
     }
 }

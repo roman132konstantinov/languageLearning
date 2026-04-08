@@ -2,6 +2,7 @@ using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using Application.Common.Exceptions;
 using Application.Interfaces;
 using Application.Services;
 using Infrastructure.Repositories;
@@ -28,8 +29,12 @@ builder.Services.AddScoped<IExerciseRepository, ExerciseRepository>();
 builder.Services.AddScoped<IExerciseService, ExerciseService>();
 builder.Services.AddScoped<IExerciseOptionRepository, ExerciseOptionRepository>();
 builder.Services.AddScoped<IExerciseOptionService, ExerciseOptionService>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IUserWordProgressRepository, UserWordProgressRepository>();
 builder.Services.AddScoped<IUserWordProgressService, UserWordProgressService>();
+builder.Services.AddScoped<IUserLessonProgressRepository, UserLessonProgressRepository>();
+builder.Services.AddScoped<IUserLessonProgressService, UserLessonProgressService>();
 
 var app = builder.Build();
 
@@ -40,8 +45,12 @@ app.UseExceptionHandler(exceptionHandlerApp =>
         var exception = context.Features.Get<IExceptionHandlerFeature>()?.Error;
         var statusCode = exception switch
         {
+            ValidationException => StatusCodes.Status400BadRequest,
             ArgumentNullException => StatusCodes.Status400BadRequest,
             ArgumentException => StatusCodes.Status400BadRequest,
+            NotFoundException => StatusCodes.Status404NotFound,
+            ConflictException => StatusCodes.Status409Conflict,
+            DbUpdateException => StatusCodes.Status409Conflict,
             _ => StatusCodes.Status500InternalServerError
         };
 
@@ -50,13 +59,32 @@ app.UseExceptionHandler(exceptionHandlerApp =>
         await context.Response.WriteAsJsonAsync(new ProblemDetails
         {
             Status = statusCode,
-            Title = statusCode == StatusCodes.Status500InternalServerError
-                ? "An unexpected error occurred."
-                : "Request validation failed.",
+            Title = statusCode switch
+            {
+                StatusCodes.Status400BadRequest => "Request validation failed.",
+                StatusCodes.Status404NotFound => "Resource not found.",
+                StatusCodes.Status409Conflict => "Request conflicts with current data.",
+                _ => "An unexpected error occurred."
+            },
             Detail = exception?.Message
         });
     });
 });
+
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<LanguageLearningDbContext>();
+
+    try
+    {
+        await dbContext.Database.MigrateAsync();
+        await DemoDataSeeder.SeedAsync(dbContext, app.Logger);
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogWarning(ex, "Database migration or demo data seeding failed during startup.");
+    }
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

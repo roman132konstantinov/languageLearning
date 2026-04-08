@@ -10,6 +10,7 @@ namespace Application.Interfaces
         Task<bool> LessonExistsAsync(int lessonId);
         Task<bool> WordExistsAsync(int wordId);
         Task<bool> ExistsAsync(int lessonId, int wordId);
+        Task<bool> ExistsWithOrderAsync(int lessonId, int order, int? excludeWordId = null);
 
         Task AddAsync(LessonWord lessonWord);
         void Delete(LessonWord lessonWord);
