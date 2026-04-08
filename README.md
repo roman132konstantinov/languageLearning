@@ -75,6 +75,22 @@ dotnet ef database update --project Infrastructure/Infrastructure.csproj --start
 
 Sample requests live in [API/API.http](/C:/Users/Roman/.codex/worktrees/7ae1/LanguageLerning/API/API.http).
 
+Postman assets:
+
+- [LanguageLearning.postman_collection.json](/C:/Users/Roman/.codex/worktrees/7ae1/LanguageLerning/postman/LanguageLearning.postman_collection.json)
+- [LanguageLearning.local.postman_environment.json](/C:/Users/Roman/.codex/worktrees/7ae1/LanguageLerning/postman/LanguageLearning.local.postman_environment.json)
+
+Suggested Postman order:
+
+1. `Health -> Live`
+2. `Auth -> Register`
+3. `Auth -> Login`
+4. `Auth -> Me`
+5. `Protected API -> List Lessons`
+6. `Protected API -> Submit Exercise Answer`
+7. `Auth -> Refresh Token`
+8. `Auth -> Logout`
+
 ## Verification
 
 Build:
