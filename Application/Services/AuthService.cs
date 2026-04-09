@@ -63,6 +63,7 @@ namespace Application.Services
             };
 
             await _authRepository.AddUserAsync(user);
+            await _authRepository.SaveChangesAsync();
             var response = await CreateSessionAsync(user, metadata, AuthAuditEventType.Register, "Registered successfully.");
             await _authRepository.SaveChangesAsync();
 
@@ -79,7 +80,7 @@ namespace Application.Services
             {
                 await WriteAuditAsync(null, normalizedEmail, AuthAuditEventType.Login, false, metadata, "Invalid credentials.");
                 await _authRepository.SaveChangesAsync();
-                throw new UnauthorizedException("Invalid email or password.");
+                throw new UnauthorizedException("Неверный email или пароль.");
             }
 
             EnsureUserCanAuthenticate(user);
@@ -97,7 +98,7 @@ namespace Application.Services
                 _authRepository.UpdateUser(user);
                 await WriteAuditAsync(user, normalizedEmail, AuthAuditEventType.Login, false, metadata, "Invalid credentials.");
                 await _authRepository.SaveChangesAsync();
-                throw new UnauthorizedException("Invalid email or password.");
+                throw new UnauthorizedException("Неверный email или пароль.");
             }
 
             if (verificationStatus == PasswordVerificationStatus.SuccessRehashNeeded)

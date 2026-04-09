@@ -29,9 +29,9 @@ namespace API.Controllers
 
         [HttpGet]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll([FromQuery] UserQueryDto query)
         {
-            var users = await _userService.GetAllAsync();
+            var users = await _userService.GetAllAsync(query);
             return Ok(users);
         }
 
@@ -103,7 +103,7 @@ namespace API.Controllers
         {
             if (!User.IsAdmin() && User.GetRequiredUserId() != targetUserId)
             {
-                throw new ForbiddenException("You can only access your own profile and progress.");
+                throw new ForbiddenException("Можно просматривать только свой профиль и свой прогресс.");
             }
         }
     }

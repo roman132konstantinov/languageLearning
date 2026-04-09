@@ -1,13 +1,11 @@
-﻿using Application.DTOs.Lessons;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using Application.DTOs.Common;
+using Application.DTOs.Lessons;
 
 namespace Application.Interfaces
 {
     public interface ILessonService
     {
-        Task<List<LessonResponseDto>> GetAllAsync();
+        Task<PagedResponseDto<LessonResponseDto>> GetAllAsync(LessonQueryDto query);
         Task<LessonResponseDto?> GetByIdAsync(int id);
         Task<LessonResponseDto> CreateAsync(CreateLessonDto dto);
         Task<LessonResponseDto?> UpdateAsync(int id, UpdateLessonDto dto);

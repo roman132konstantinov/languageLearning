@@ -1,3 +1,4 @@
+using Application.Common.Pagination;
 using System.Security.Cryptography;
 using System.Text;
 using Application.Common.Exceptions;
@@ -7,6 +8,8 @@ using Application.DTOs.Category;
 using Application.DTOs.ExerciseOption;
 using Application.DTOs.Lessons;
 using Application.DTOs.Progress;
+using Application.DTOs.Users;
+using Application.DTOs.Words;
 using Application.Interfaces;
 using Application.Options;
 using Application.Services;
@@ -22,6 +25,10 @@ var tests = new (string Name, Func<Task> Run)[]
     ("Password change revokes active refresh tokens", ChangePasswordRevokesRefreshTokensAsync),
     ("Category duplicate name validation", CategoryDuplicateNameValidationAsync),
     ("Lesson duplicate order validation", LessonDuplicateOrderValidationAsync),
+    ("Word list supports pagination, filters, search, and sorting", WordListSupportsPaginationFilteringSearchAndSortingAsync),
+    ("Lesson list supports search, sorting, and paging", LessonListSupportsSearchSortingAndPagingAsync),
+    ("Category list supports search, sorting, and paging", CategoryListSupportsSearchSortingAndPagingAsync),
+    ("User list supports search, sorting, and paging", UserListSupportsSearchSortingAndPagingAsync),
     ("Exercise submit answer updates progress", ExerciseSubmitAnswerUpdatesProgressAsync)
 };
 
@@ -212,6 +219,128 @@ static async Task LessonDuplicateOrderValidationAsync()
             Order = 1,
             Level = LanguageLevel.A1
         }));
+}
+
+static async Task WordListSupportsPaginationFilteringSearchAndSortingAsync()
+{
+    var repository = new FakeWordRepository
+    {
+        Words =
+        {
+            new() { Id = 1, KazakhText = "ana", RussianTranslation = "мама", Level = LanguageLevel.A1, CategoryId = 1, IsActive = true },
+            new() { Id = 2, KazakhText = "ananas", RussianTranslation = "ананас", Level = LanguageLevel.B1, CategoryId = 1, IsActive = true },
+            new() { Id = 3, KazakhText = "bala", RussianTranslation = "ребенок", Level = LanguageLevel.A1, CategoryId = 2, IsActive = true },
+            new() { Id = 4, KazakhText = "ana tili", RussianTranslation = "родной язык", Level = LanguageLevel.A2, CategoryId = 1, IsActive = false }
+        }
+    };
+
+    var service = new WordService(repository);
+
+    var response = await service.GetAllAsync(new WordQueryDto
+    {
+        Page = 2,
+        PageSize = 1,
+        Search = "ana",
+        SortBy = "level",
+        SortOrder = "desc",
+        CategoryId = 1,
+        IsActive = true
+    });
+
+    Assert(response.Page == 2, "Expected second page for words.");
+    Assert(response.PageSize == 1, "Expected word page size to be preserved.");
+    Assert(response.TotalCount == 2, "Expected two words after filtering.");
+    Assert(response.TotalPages == 2, "Expected total pages for filtered words.");
+    Assert(response.Items.Count == 1, "Expected a single word item on the requested page.");
+    Assert(response.Items[0].Id == 1, "Expected the second sorted word item to be returned.");
+}
+
+static async Task LessonListSupportsSearchSortingAndPagingAsync()
+{
+    var repository = new FakeLessonRepository
+    {
+        Lessons =
+        {
+            new() { Id = 1, Title = "Family Basics", Description = "Core family words", Order = 1, Level = LanguageLevel.A1, IsPublished = true },
+            new() { Id = 2, Title = "Animals", Description = "Animal vocabulary", Order = 2, Level = LanguageLevel.A1, IsPublished = true },
+            new() { Id = 3, Title = "Family Advanced", Description = "Extended family practice", Order = 3, Level = LanguageLevel.B1, IsPublished = false }
+        }
+    };
+
+    var service = new LessonService(repository);
+
+    var response = await service.GetAllAsync(new LessonQueryDto
+    {
+        Page = 1,
+        PageSize = 1,
+        Search = "family",
+        SortBy = "order",
+        SortOrder = "desc"
+    });
+
+    Assert(response.TotalCount == 2, "Expected two lessons to match the search.");
+    Assert(response.TotalPages == 2, "Expected lesson pages to be calculated.");
+    Assert(response.Items.Count == 1, "Expected a single lesson item on the page.");
+    Assert(response.Items[0].Id == 3, "Expected the highest order matching lesson first.");
+}
+
+static async Task CategoryListSupportsSearchSortingAndPagingAsync()
+{
+    var repository = new FakeCategoryRepository
+    {
+        ExistingCategories =
+        {
+            new() { Id = 1, Name = "Animals", Description = "Wild and domestic animals" },
+            new() { Id = 2, Name = "Family", Description = "Family members" },
+            new() { Id = 3, Name = "Travel", Description = "Travel phrases" }
+        }
+    };
+
+    var service = new CategoryService(repository);
+
+    var response = await service.GetAllAsync(new CategoryQueryDto
+    {
+        Page = 2,
+        PageSize = 1,
+        Search = "a",
+        SortBy = "name",
+        SortOrder = "desc"
+    });
+
+    Assert(response.TotalCount == 3, "Expected three categories to match the search.");
+    Assert(response.TotalPages == 3, "Expected category total pages to be calculated.");
+    Assert(response.Items.Count == 1, "Expected a single category item on the page.");
+    Assert(response.Items[0].Name == "Family", "Expected category sorting to be applied before paging.");
+}
+
+static async Task UserListSupportsSearchSortingAndPagingAsync()
+{
+    var repository = new FakeUserRepository
+    {
+        Users =
+        {
+            new() { Id = 1, Email = "admin1@example.com", UserName = "Admin One", Role = UserRole.Admin, Level = LanguageLevel.A1, CreatedAt = new DateTime(2026, 04, 01), IsActive = true },
+            new() { Id = 2, Email = "admin2@example.com", UserName = "Admin Two", Role = UserRole.Admin, Level = LanguageLevel.A2, CreatedAt = new DateTime(2026, 04, 03), IsActive = true },
+            new() { Id = 3, Email = "student@example.com", UserName = "Student", Role = UserRole.User, Level = LanguageLevel.Beginner, CreatedAt = new DateTime(2026, 04, 02), IsActive = true }
+        }
+    };
+
+    var service = new UserService(repository, new PasswordHasher(CreateAuthOptions()), CreateAuthOptions());
+
+    var response = await service.GetAllAsync(new UserQueryDto
+    {
+        Page = 1,
+        PageSize = 2,
+        Search = "admin",
+        SortBy = "createdAt",
+        SortOrder = "desc"
+    });
+
+    Assert(response.TotalCount == 2, "Expected two admin users to match the search.");
+    Assert(response.TotalPages == 1, "Expected a single user page.");
+    Assert(response.Items.Count == 2, "Expected both matching users on the first page.");
+    Assert(response.Items[0].Id == 2, "Expected newest matching user first.");
+    Assert(response.Items[1].Id == 1, "Expected second newest matching user next.");
 }
 
 static async Task ExerciseSubmitAnswerUpdatesProgressAsync()
@@ -410,7 +539,35 @@ file sealed class FakeCategoryRepository : ICategoryRepository
         return Task.FromResult(exists);
     }
 
-    public Task<List<Category>> GetAllAsync() => Task.FromResult(ExistingCategories.ToList());
+    public Task<PagedResult<Category>> GetAllAsync(CategoryQueryDto query)
+    {
+        var categories = ExistingCategories.AsEnumerable();
+
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            categories = categories.Where(x =>
+                x.Name.Contains(query.Search, StringComparison.OrdinalIgnoreCase) ||
+                (x.Description?.Contains(query.Search, StringComparison.OrdinalIgnoreCase) ?? false));
+        }
+
+        categories = (query.SortBy?.Trim().ToLowerInvariant(), query.SortOrder?.Trim().ToLowerInvariant()) switch
+        {
+            ("description", "desc") => categories.OrderByDescending(x => x.Description),
+            ("description", _) => categories.OrderBy(x => x.Description),
+            ("id", "desc") => categories.OrderByDescending(x => x.Id),
+            ("id", _) => categories.OrderBy(x => x.Id),
+            (_, "desc") => categories.OrderByDescending(x => x.Name),
+            _ => categories.OrderBy(x => x.Name)
+        };
+
+        var categoryList = categories.ToList();
+        var items = categoryList
+            .Skip((query.Page - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .ToList();
+
+        return Task.FromResult(new PagedResult<Category>(items, query.Page, query.PageSize, categoryList.Count));
+    }
 
     public Task<Category?> GetByIdAsync(int id) => Task.FromResult(ExistingCategories.FirstOrDefault(x => x.Id == id));
 
@@ -426,29 +583,208 @@ file sealed class FakeCategoryRepository : ICategoryRepository
 file sealed class FakeLessonRepository : ILessonRepository
 {
     public bool DuplicateOrder { get; set; }
-    private readonly List<Lesson> _lessons = new();
+    public List<Lesson> Lessons { get; } = new();
 
     public Task AddAsync(Lesson lesson)
     {
-        lesson.Id = _lessons.Count + 1;
-        _lessons.Add(lesson);
+        lesson.Id = Lessons.Count + 1;
+        Lessons.Add(lesson);
         return Task.CompletedTask;
     }
 
-    public void Delete(Lesson lesson) => _lessons.Remove(lesson);
+    public void Delete(Lesson lesson) => Lessons.Remove(lesson);
 
     public Task<bool> ExistsWithOrderAsync(int order, int? excludeLessonId = null)
         => Task.FromResult(DuplicateOrder);
 
-    public Task<List<Lesson>> GetAllAsync() => Task.FromResult(_lessons.ToList());
+    public Task<PagedResult<Lesson>> GetAllAsync(LessonQueryDto query)
+    {
+        var lessons = Lessons.AsEnumerable();
 
-    public Task<Lesson?> GetByIdAsync(int id) => Task.FromResult(_lessons.FirstOrDefault(x => x.Id == id));
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            lessons = lessons.Where(x =>
+                x.Title.Contains(query.Search, StringComparison.OrdinalIgnoreCase) ||
+                (x.Description?.Contains(query.Search, StringComparison.OrdinalIgnoreCase) ?? false));
+        }
+
+        lessons = (query.SortBy?.Trim().ToLowerInvariant(), query.SortOrder?.Trim().ToLowerInvariant()) switch
+        {
+            ("id", "desc") => lessons.OrderByDescending(x => x.Id),
+            ("id", _) => lessons.OrderBy(x => x.Id),
+            ("title", "desc") => lessons.OrderByDescending(x => x.Title),
+            ("title", _) => lessons.OrderBy(x => x.Title),
+            ("level", "desc") => lessons.OrderByDescending(x => x.Level),
+            ("level", _) => lessons.OrderBy(x => x.Level),
+            ("ispublished", "desc") => lessons.OrderByDescending(x => x.IsPublished),
+            ("ispublished", _) => lessons.OrderBy(x => x.IsPublished),
+            (_, "desc") => lessons.OrderByDescending(x => x.Order),
+            _ => lessons.OrderBy(x => x.Order)
+        };
+
+        var lessonList = lessons.ToList();
+        var items = lessonList
+            .Skip((query.Page - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .ToList();
+
+        return Task.FromResult(new PagedResult<Lesson>(items, query.Page, query.PageSize, lessonList.Count));
+    }
+
+    public Task<Lesson?> GetByIdAsync(int id) => Task.FromResult(Lessons.FirstOrDefault(x => x.Id == id));
 
     public Task SaveChangesAsync() => Task.CompletedTask;
 
     public void Update(Lesson lesson)
     {
     }
+}
+
+file sealed class FakeWordRepository : IWordRepository
+{
+    public List<Word> Words { get; } = new();
+
+    public Task<PagedResult<Word>> GetAllAsync(WordQueryDto query)
+    {
+        var words = Words.AsEnumerable();
+
+        if (query.Level.HasValue)
+        {
+            words = words.Where(x => x.Level == query.Level.Value);
+        }
+
+        if (query.CategoryId.HasValue)
+        {
+            words = words.Where(x => x.CategoryId == query.CategoryId.Value);
+        }
+
+        if (query.IsActive.HasValue)
+        {
+            words = words.Where(x => x.IsActive == query.IsActive.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            words = words.Where(x =>
+                x.KazakhText.Contains(query.Search, StringComparison.OrdinalIgnoreCase) ||
+                x.RussianTranslation.Contains(query.Search, StringComparison.OrdinalIgnoreCase) ||
+                (x.Pronunciation?.Contains(query.Search, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (x.Example?.Contains(query.Search, StringComparison.OrdinalIgnoreCase) ?? false));
+        }
+
+        words = (query.SortBy?.Trim().ToLowerInvariant(), query.SortOrder?.Trim().ToLowerInvariant()) switch
+        {
+            ("id", "desc") => words.OrderByDescending(x => x.Id),
+            ("id", _) => words.OrderBy(x => x.Id),
+            ("russiantranslation", "desc") => words.OrderByDescending(x => x.RussianTranslation),
+            ("russiantranslation", _) => words.OrderBy(x => x.RussianTranslation),
+            ("level", "desc") => words.OrderByDescending(x => x.Level),
+            ("level", _) => words.OrderBy(x => x.Level),
+            ("categoryid", "desc") => words.OrderByDescending(x => x.CategoryId),
+            ("categoryid", _) => words.OrderBy(x => x.CategoryId),
+            ("isactive", "desc") => words.OrderByDescending(x => x.IsActive),
+            ("isactive", _) => words.OrderBy(x => x.IsActive),
+            ("kazakhtext", "desc") => words.OrderByDescending(x => x.KazakhText),
+            _ => words.OrderBy(x => x.KazakhText)
+        };
+
+        var wordList = words.ToList();
+        var items = wordList
+            .Skip((query.Page - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .ToList();
+
+        return Task.FromResult(new PagedResult<Word>(items, query.Page, query.PageSize, wordList.Count));
+    }
+
+    public Task<Word?> GetByIdAsync(int id) => Task.FromResult(Words.FirstOrDefault(x => x.Id == id));
+
+    public Task<bool> CategoryExistsAsync(int categoryId) => Task.FromResult(true);
+
+    public Task AddAsync(Word word)
+    {
+        word.Id = Words.Count + 1;
+        Words.Add(word);
+        return Task.CompletedTask;
+    }
+
+    public void Update(Word word)
+    {
+    }
+
+    public void Delete(Word word)
+    {
+        Words.Remove(word);
+    }
+
+    public Task SaveChangesAsync() => Task.CompletedTask;
+}
+
+file sealed class FakeUserRepository : IUserRepository
+{
+    public List<User> Users { get; } = new();
+
+    public Task<PagedResult<User>> GetAllAsync(UserQueryDto query)
+    {
+        var users = Users.AsEnumerable();
+
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            users = users.Where(x =>
+                x.Email.Contains(query.Search, StringComparison.OrdinalIgnoreCase) ||
+                x.UserName.Contains(query.Search, StringComparison.OrdinalIgnoreCase));
+        }
+
+        users = (query.SortBy?.Trim().ToLowerInvariant(), query.SortOrder?.Trim().ToLowerInvariant()) switch
+        {
+            ("id", "desc") => users.OrderByDescending(x => x.Id),
+            ("id", _) => users.OrderBy(x => x.Id),
+            ("email", "desc") => users.OrderByDescending(x => x.Email),
+            ("email", _) => users.OrderBy(x => x.Email),
+            ("role", "desc") => users.OrderByDescending(x => x.Role),
+            ("role", _) => users.OrderBy(x => x.Role),
+            ("level", "desc") => users.OrderByDescending(x => x.Level),
+            ("level", _) => users.OrderBy(x => x.Level),
+            ("createdat", "desc") => users.OrderByDescending(x => x.CreatedAt),
+            ("createdat", _) => users.OrderBy(x => x.CreatedAt),
+            ("lastloginat", "desc") => users.OrderByDescending(x => x.LastLoginAt),
+            ("lastloginat", _) => users.OrderBy(x => x.LastLoginAt),
+            ("isactive", "desc") => users.OrderByDescending(x => x.IsActive),
+            ("isactive", _) => users.OrderBy(x => x.IsActive),
+            ("username", "desc") => users.OrderByDescending(x => x.UserName),
+            _ => users.OrderBy(x => x.UserName)
+        };
+
+        var userList = users.ToList();
+        var items = userList
+            .Skip((query.Page - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .ToList();
+
+        return Task.FromResult(new PagedResult<User>(items, query.Page, query.PageSize, userList.Count));
+    }
+
+    public Task<User?> GetByIdAsync(int id) => Task.FromResult(Users.FirstOrDefault(x => x.Id == id));
+
+    public Task<User?> GetByEmailAsync(string email) => Task.FromResult(Users.FirstOrDefault(x => x.Email == email));
+
+    public Task AddAsync(User user)
+    {
+        user.Id = Users.Count + 1;
+        Users.Add(user);
+        return Task.CompletedTask;
+    }
+
+    public void Update(User user)
+    {
+    }
+
+    public void Delete(User user)
+    {
+        Users.Remove(user);
+    }
+
+    public Task SaveChangesAsync() => Task.CompletedTask;
 }
 
 file sealed class FakeExerciseRepository : IExerciseRepository

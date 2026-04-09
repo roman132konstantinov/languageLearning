@@ -1,4 +1,6 @@
 using Application.Common.Exceptions;
+using Application.Common.Pagination;
+using Application.DTOs.Common;
 using Application.DTOs.Lessons;
 using Application.Interfaces;
 using Domain.Entities;
@@ -15,10 +17,22 @@ namespace Application.Services
             _lessonRepository = lessonRepository;
         }
 
-        public async Task<List<LessonResponseDto>> GetAllAsync()
+        public async Task<PagedResponseDto<LessonResponseDto>> GetAllAsync(LessonQueryDto query)
         {
-            var lessons = await _lessonRepository.GetAllAsync();
-            return lessons.Select(MapToResponse).ToList();
+            query ??= new LessonQueryDto();
+
+            PagedQueryNormalizer.Normalize(query);
+
+            var lessons = await _lessonRepository.GetAllAsync(query);
+
+            return new PagedResponseDto<LessonResponseDto>
+            {
+                Items = lessons.Items.Select(MapToResponse).ToList(),
+                Page = lessons.Page,
+                PageSize = lessons.PageSize,
+                TotalCount = lessons.TotalCount,
+                TotalPages = lessons.TotalPages
+            };
         }
 
         public async Task<LessonResponseDto?> GetByIdAsync(int id)
@@ -40,6 +54,7 @@ namespace Application.Services
             {
                 Title = dto.Title.Trim(),
                 Description = NormalizeOptional(dto.Description),
+                AudioUrl = NormalizeOptional(dto.AudioUrl),
                 Level = dto.Level,
                 Order = dto.Order,
                 IsPublished = dto.IsPublished
@@ -65,6 +80,7 @@ namespace Application.Services
 
             lesson.Title = dto.Title.Trim();
             lesson.Description = NormalizeOptional(dto.Description);
+            lesson.AudioUrl = NormalizeOptional(dto.AudioUrl);
             lesson.Level = dto.Level;
             lesson.Order = dto.Order;
             lesson.IsPublished = dto.IsPublished;
@@ -96,6 +112,7 @@ namespace Application.Services
                 Id = lesson.Id,
                 Title = lesson.Title,
                 Description = lesson.Description,
+                AudioUrl = lesson.AudioUrl,
                 Level = lesson.Level,
                 Order = lesson.Order,
                 IsPublished = lesson.IsPublished
@@ -118,7 +135,7 @@ namespace Application.Services
             if (dto is null)
                 throw new ValidationException("Lesson payload is required.");
 
-            ValidateLessonFields(dto.Title, dto.Description, dto.Order, dto.Level);
+            ValidateLessonFields(dto.Title, dto.Description, dto.AudioUrl, dto.Order, dto.Level);
         }
 
         private static void ValidateUpdateDto(UpdateLessonDto dto)
@@ -126,10 +143,10 @@ namespace Application.Services
             if (dto is null)
                 throw new ValidationException("Lesson payload is required.");
 
-            ValidateLessonFields(dto.Title, dto.Description, dto.Order, dto.Level);
+            ValidateLessonFields(dto.Title, dto.Description, dto.AudioUrl, dto.Order, dto.Level);
         }
 
-        private static void ValidateLessonFields(string title, string? description, int order, LanguageLevel level)
+        private static void ValidateLessonFields(string title, string? description, string? audioUrl, int order, LanguageLevel level)
         {
             if (string.IsNullOrWhiteSpace(title))
                 throw new ValidationException("Lesson title is required.");
@@ -139,6 +156,9 @@ namespace Application.Services
 
             if (description is not null && description.Trim().Length > 1000)
                 throw new ValidationException("Lesson description must not exceed 1000 characters.");
+
+            if (audioUrl is not null && audioUrl.Trim().Length > 2000)
+                throw new ValidationException("Lesson audio URL must not exceed 2000 characters.");
 
             if (order <= 0)
                 throw new ValidationException("Lesson order must be greater than 0.");

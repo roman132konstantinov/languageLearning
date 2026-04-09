@@ -1,5 +1,7 @@
 using Application.Common.Exceptions;
+using Application.Common.Pagination;
 using Application.DTOs.Category;
+using Application.DTOs.Common;
 using Application.Interfaces;
 using Domain.Entities;
 
@@ -14,11 +16,22 @@ namespace Application.Services
             _categoryRepository = categoryRepository;
         }
 
-        public async Task<List<CategoryResponseDto>> GetAllAsync()
+        public async Task<PagedResponseDto<CategoryResponseDto>> GetAllAsync(CategoryQueryDto query)
         {
-            var categories = await _categoryRepository.GetAllAsync();
+            query ??= new CategoryQueryDto();
 
-            return categories.Select(MapToResponse).ToList();
+            PagedQueryNormalizer.Normalize(query);
+
+            var categories = await _categoryRepository.GetAllAsync(query);
+
+            return new PagedResponseDto<CategoryResponseDto>
+            {
+                Items = categories.Items.Select(MapToResponse).ToList(),
+                Page = categories.Page,
+                PageSize = categories.PageSize,
+                TotalCount = categories.TotalCount,
+                TotalPages = categories.TotalPages
+            };
         }
 
         public async Task<CategoryResponseDto?> GetByIdAsync(int id)

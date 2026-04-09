@@ -1,13 +1,12 @@
-﻿using Domain.Entities;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using Application.Common.Pagination;
+using Application.DTOs.Category;
+using Domain.Entities;
 
 namespace Application.Interfaces
 {
     public interface ICategoryRepository
     {
-        Task<List<Category>> GetAllAsync();
+        Task<PagedResult<Category>> GetAllAsync(CategoryQueryDto query);
         Task<Category?> GetByIdAsync(int id);
         Task<bool> ExistsByNameAsync(string name, int? excludeCategoryId = null);
         Task<bool> HasWordsAsync(int id);

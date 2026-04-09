@@ -11,6 +11,7 @@ namespace Domain.Entities
 
         public string Title { get; set; } = string.Empty;
         public string? Description { get; set; }
+        public string? AudioUrl { get; set; }
 
         public LanguageLevel Level { get; set; } = LanguageLevel.A1;
         public int Order { get; set; }

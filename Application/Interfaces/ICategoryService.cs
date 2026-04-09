@@ -1,13 +1,11 @@
-﻿using Application.DTOs.Category;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using Application.DTOs.Category;
+using Application.DTOs.Common;
 
 namespace Application.Interfaces
 {
     public interface ICategoryService
     {
-        Task<List<CategoryResponseDto>> GetAllAsync();
+        Task<PagedResponseDto<CategoryResponseDto>> GetAllAsync(CategoryQueryDto query);
         Task<CategoryResponseDto?> GetByIdAsync(int id);
         Task<CategoryResponseDto> CreateAsync(CreateCategoryDto dto);
         Task<bool> UpdateAsync(int id, UpdateCategoryDto dto);

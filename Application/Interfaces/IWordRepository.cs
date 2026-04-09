@@ -1,10 +1,12 @@
-﻿using Domain.Entities;
+using Application.Common.Pagination;
+using Application.DTOs.Words;
+using Domain.Entities;
 
 namespace Application.Interfaces
 {
     public interface IWordRepository
     {
-        Task<List<Word>> GetAllAsync();
+        Task<PagedResult<Word>> GetAllAsync(WordQueryDto query);
         Task<Word?> GetByIdAsync(int id);
         Task<bool> CategoryExistsAsync(int categoryId);
         Task AddAsync(Word word);

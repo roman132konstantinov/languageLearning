@@ -23,9 +23,9 @@ namespace API.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll([FromQuery] LessonQueryDto query)
         {
-            var lessons = await _lessonService.GetAllAsync();
+            var lessons = await _lessonService.GetAllAsync(query);
             return Ok(lessons);
         }
 

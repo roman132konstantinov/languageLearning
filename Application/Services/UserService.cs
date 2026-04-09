@@ -1,6 +1,8 @@
 using Application.Common.Exceptions;
 using Application.Common.Mappings;
+using Application.Common.Pagination;
 using Application.Common.Security;
+using Application.DTOs.Common;
 using Application.DTOs.Users;
 using Application.Interfaces;
 using Application.Options;
@@ -25,10 +27,22 @@ namespace Application.Services
             _authOptions = authOptions;
         }
 
-        public async Task<List<UserResponseDto>> GetAllAsync()
+        public async Task<PagedResponseDto<UserResponseDto>> GetAllAsync(UserQueryDto query)
         {
-            var users = await _userRepository.GetAllAsync();
-            return users.Select(x => x.ToResponse()).ToList();
+            query ??= new UserQueryDto();
+
+            PagedQueryNormalizer.Normalize(query);
+
+            var users = await _userRepository.GetAllAsync(query);
+
+            return new PagedResponseDto<UserResponseDto>
+            {
+                Items = users.Items.Select(x => x.ToResponse()).ToList(),
+                Page = users.Page,
+                PageSize = users.PageSize,
+                TotalCount = users.TotalCount,
+                TotalPages = users.TotalPages
+            };
         }
 
         public async Task<UserResponseDto?> GetByIdAsync(int id)

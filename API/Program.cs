@@ -187,12 +187,12 @@ app.UseExceptionHandler(exceptionHandlerApp =>
             Status = statusCode,
             Title = statusCode switch
             {
-                StatusCodes.Status400BadRequest => "Request validation failed.",
-                StatusCodes.Status401Unauthorized => "Authentication failed.",
-                StatusCodes.Status403Forbidden => "Access denied.",
-                StatusCodes.Status404NotFound => "Resource not found.",
-                StatusCodes.Status409Conflict => "Request conflicts with current data.",
-                _ => "An unexpected error occurred."
+                StatusCodes.Status400BadRequest => "Проверьте введённые данные.",
+                StatusCodes.Status401Unauthorized => "Не удалось выполнить вход.",
+                StatusCodes.Status403Forbidden => "Доступ запрещён.",
+                StatusCodes.Status404NotFound => "Ресурс не найден.",
+                StatusCodes.Status409Conflict => "Запрос конфликтует с текущими данными.",
+                _ => "Произошла непредвиденная ошибка."
             },
             Detail = exception?.Message
         });
@@ -207,7 +207,10 @@ if (app.Environment.IsDevelopment())
 await StartupTasks.InitializeDatabaseAsync(app.Services, app.Logger);
 
 app.UseHttpLogging();
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 app.UseCors("DefaultCors");
 app.UseRateLimiter();
 app.UseMiddleware<RequestTelemetryMiddleware>();

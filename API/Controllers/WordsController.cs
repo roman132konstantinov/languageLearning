@@ -18,9 +18,9 @@ namespace API.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll([FromQuery] WordQueryDto query)
         {
-            var words = await _wordService.GetAllAsync();
+            var words = await _wordService.GetAllAsync(query);
             return Ok(words);
         }
 

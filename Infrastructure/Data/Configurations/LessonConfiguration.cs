@@ -16,6 +16,8 @@ namespace Infrastructure.Data.Configurations
                 .IsRequired()
                 .HasMaxLength(200);
 
+            builder.Property(e => e.AudioUrl);
+
         }
     }
 }

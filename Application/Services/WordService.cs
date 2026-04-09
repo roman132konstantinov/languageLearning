@@ -1,4 +1,6 @@
 using Application.Common.Exceptions;
+using Application.Common.Pagination;
+using Application.DTOs.Common;
 using Application.DTOs.Words;
 using Application.Interfaces;
 using Domain.Entities;
@@ -15,10 +17,23 @@ namespace Application.Services
             _wordRepository = wordRepository;
         }
 
-        public async Task<List<WordResponseDto>> GetAllAsync()
+        public async Task<PagedResponseDto<WordResponseDto>> GetAllAsync(WordQueryDto query)
         {
-            var words = await _wordRepository.GetAllAsync();
-            return words.Select(MapToResponse).ToList();
+            query ??= new WordQueryDto();
+
+            PagedQueryNormalizer.Normalize(query);
+            ValidateQuery(query);
+
+            var words = await _wordRepository.GetAllAsync(query);
+
+            return new PagedResponseDto<WordResponseDto>
+            {
+                Items = words.Items.Select(MapToResponse).ToList(),
+                Page = words.Page,
+                PageSize = words.PageSize,
+                TotalCount = words.TotalCount,
+                TotalPages = words.TotalPages
+            };
         }
 
         public async Task<WordResponseDto?> GetByIdAsync(int id)
@@ -95,6 +110,15 @@ namespace Application.Services
             await _wordRepository.SaveChangesAsync();
 
             return true;
+        }
+
+        private static void ValidateQuery(WordQueryDto query)
+        {
+            if (query.CategoryId.HasValue && query.CategoryId.Value <= 0)
+                throw new ValidationException("CategoryId must be greater than 0.");
+
+            if (query.Level.HasValue && !Enum.IsDefined(typeof(LanguageLevel), query.Level.Value))
+                throw new ValidationException("Invalid language level.");
         }
 
         private static WordResponseDto MapToResponse(Word word)

@@ -1,3 +1,5 @@
+using Application.Common.Pagination;
+using Application.DTOs.Category;
 using Application.Interfaces;
 using Domain.Entities;
 using Infrastructure.Data;
@@ -14,12 +16,27 @@ namespace Infrastructure.Repositories
             _db = db;
         }
 
-        public async Task<List<Category>> GetAllAsync()
+        public async Task<PagedResult<Category>> GetAllAsync(CategoryQueryDto query)
         {
-            return await _db.Categories
-                .AsNoTracking()
-                .OrderBy(x => x.Name)
+            var categoriesQuery = _db.Categories.AsNoTracking().AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(query.Search))
+            {
+                var search = query.Search.Trim();
+                categoriesQuery = categoriesQuery.Where(x =>
+                    x.Name.Contains(search) ||
+                    (x.Description != null && x.Description.Contains(search)));
+            }
+
+            categoriesQuery = ApplySorting(categoriesQuery, query.SortBy, PagedQueryNormalizer.IsDescending(query.SortOrder));
+
+            var totalCount = await categoriesQuery.CountAsync();
+            var items = await categoriesQuery
+                .Skip((query.Page - 1) * query.PageSize)
+                .Take(query.PageSize)
                 .ToListAsync();
+
+            return new PagedResult<Category>(items, query.Page, query.PageSize, totalCount);
         }
 
         public async Task<Category?> GetByIdAsync(int id)
@@ -60,6 +77,18 @@ namespace Infrastructure.Repositories
         public async Task SaveChangesAsync()
         {
             await _db.SaveChangesAsync();
+        }
+
+        private static IQueryable<Category> ApplySorting(IQueryable<Category> query, string? sortBy, bool descending)
+        {
+            var normalizedSortBy = sortBy?.Trim().ToLowerInvariant();
+
+            return normalizedSortBy switch
+            {
+                "id" => descending ? query.OrderByDescending(x => x.Id) : query.OrderBy(x => x.Id),
+                "description" => descending ? query.OrderByDescending(x => x.Description) : query.OrderBy(x => x.Description),
+                _ => descending ? query.OrderByDescending(x => x.Name) : query.OrderBy(x => x.Name)
+            };
         }
     }
 }
