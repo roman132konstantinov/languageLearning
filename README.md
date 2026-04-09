@@ -1,45 +1,87 @@
-# LanguageLearning Backend
+# LanguageLearning
 
-Production-oriented ASP.NET Core backend for a language learning service with JWT auth, RBAC, refresh token rotation, health checks, rate limiting, JSON logging, and EF Core migrations.
+Учебный проект для изучения казахского языка.
 
-## What is implemented
+Сейчас это не завершённый продукт, а ранняя стадия разработки: базовая архитектура, API, база данных и мобильный клиент уже есть, но проект ещё требует доработки, полировки интерфейсов и расширения учебных сценариев.
 
-- JWT access tokens plus persisted refresh tokens with rotation and revocation
-- Roles and claims: `Admin`, `Editor`, `User`
-- Auth endpoints: `register`, `login`, `refresh-token`, `logout`, `me`, `change-password`
-- PBKDF2 password hashing with legacy SHA256 rehash support
-- Login lockout and auth audit log storage
-- Protected API endpoints with role-based authorization
-- Health endpoints: `/health/live`, `/health/ready`
-- CORS, fixed-window rate limiting, request telemetry, JSON console logging
-- Environment-specific config for development, staging, and production
+## Что есть сейчас
 
-## Required configuration
+Проект состоит из двух основных частей:
 
-The API now expects secrets through environment variables or user secrets.
+- ASP.NET Core backend
+- Flutter-клиент `kazlang_app`
 
-Required values:
+## Текущий функционал
+
+### Backend
+
+Серверная часть уже умеет:
+
+- регистрировать пользователей и выполнять вход
+- выдавать `access token` и `refresh token`
+- поддерживать роли `Admin`, `Editor`, `User`
+- отдавать список категорий, слов, уроков и упражнений
+- создавать и редактировать учебный контент
+- хранить прогресс пользователя по словам и урокам
+- работать с пагинацией, фильтрацией и сортировкой в основных списках
+- применять EF Core migrations для базы данных
+
+Также в проекте уже есть:
+
+- health endpoints
+- базовая валидация
+- ограничение запросов
+- аудит аутентификации
+
+### Flutter-приложение
+
+Мобильный клиент уже умеет:
+
+- авторизацию и регистрацию
+- просмотр уроков, слов и прогресса
+- работу с контентом для ролей с правами редактирования
+- прохождение части учебных упражнений
+- воспроизведение аудио урока и слова
+- fallback-озвучку слова через TTS, если отдельный `audioUrl` не задан
+
+## Что ещё не доделано
+
+На текущий момент проект всё ещё в разработке. Например:
+
+- не завершены все пользовательские сценарии обучения
+- нужна дальнейшая доработка UI/UX
+- не доведены до конца production-сценарии деплоя
+- не реализованы все вспомогательные возможности вокруг аккаунта и контента
+- README и внутренняя документация ещё будут уточняться по мере развития проекта
+
+## Стек
+
+- `.NET`
+- `ASP.NET Core`
+- `Entity Framework Core`
+- `SQL Server`
+- `Flutter`
+- `Dart`
+
+## Структура проекта
+
+- `API` — web API и конфигурация приложения
+- `Application` — сервисы, DTO и бизнес-логика
+- `Domain` — доменные сущности
+- `Infrastructure` — работа с БД, репозитории, migrations
+- `LanguageLerning.Tests` — тестовый проект
+- `kazlang_app` — Flutter-клиент
+
+## Как запустить backend локально
+
+Нужны значения конфигурации:
 
 - `ConnectionStrings__DefaultConnection`
 - `Jwt__Issuer`
 - `Jwt__Audience`
 - `Jwt__SigningKey`
 
-Recommended bootstrap values:
-
-- `Auth__BootstrapFirstUserAsAdmin=true`
-  Use this only for the initial admin bootstrap if production starts with an empty database.
-
-Development example with user secrets:
-
-```powershell
-dotnet user-secrets --project API/API.csproj set "ConnectionStrings:DefaultConnection" "Server=(localdb)\\mssqllocaldb;Database=LanguageLearningDb;Trusted_Connection=True;TrustServerCertificate=True;"
-dotnet user-secrets --project API/API.csproj set "Jwt:Issuer" "LanguageLearning.API"
-dotnet user-secrets --project API/API.csproj set "Jwt:Audience" "LanguageLearning.Client"
-dotnet user-secrets --project API/API.csproj set "Jwt:SigningKey" "change-this-to-a-long-random-32-char-key"
-```
-
-## Run locally
+Пример локального запуска:
 
 ```powershell
 dotnet restore LanguageLerning.slnx
@@ -47,84 +89,43 @@ dotnet build LanguageLerning.slnx
 dotnet run --project API/API.csproj
 ```
 
-Development startup applies migrations and seeds demo content automatically. Production and staging do not.
+В development-режиме приложение применяет миграции и может заполнить базу демо-данными.
 
-## Database and migrations
+## Как запустить Flutter-клиент
 
-Create a new migration:
+```powershell
+cd kazlang_app
+flutter pub get
+flutter run
+```
+
+Если backend запущен не на адресе по умолчанию, базовый URL можно изменить в самом приложении.
+
+## База данных и миграции
+
+Создать новую миграцию:
 
 ```powershell
 $env:ConnectionStrings__DefaultConnection='Server=(localdb)\\mssqllocaldb;Database=LanguageLearningDesignTime;Trusted_Connection=True;TrustServerCertificate=True;'
 dotnet ef migrations add <MigrationName> --project Infrastructure/Infrastructure.csproj --startup-project API/API.csproj --context LanguageLearningDbContext
 ```
 
-Apply migrations manually:
+Применить миграции:
 
 ```powershell
 dotnet ef database update --project Infrastructure/Infrastructure.csproj --startup-project API/API.csproj --context LanguageLearningDbContext
 ```
 
-## API workflow
-
-1. Register the first user.
-2. If bootstrap is enabled and the database is empty, that user becomes `Admin`.
-3. Login to get `accessToken` and `refreshToken`.
-4. Use `Authorization: Bearer <accessToken>` for protected endpoints.
-5. Rotate sessions with `/api/auth/refresh-token`.
-6. Revoke the current session with `/api/auth/logout`.
-
-Sample requests live in [API/API.http](/C:/Users/Roman/.codex/worktrees/7ae1/LanguageLerning/API/API.http).
-
-Postman assets:
-
-- [LanguageLearning.postman_collection.json](/C:/Users/Roman/.codex/worktrees/7ae1/LanguageLerning/postman/LanguageLearning.postman_collection.json)
-- [LanguageLearning.local.postman_environment.json](/C:/Users/Roman/.codex/worktrees/7ae1/LanguageLerning/postman/LanguageLearning.local.postman_environment.json)
-
-Suggested Postman order:
-
-1. `Health -> Live`
-2. `Auth -> Register`
-3. `Auth -> Login`
-4. `Auth -> Me`
-5. `Protected API -> List Lessons`
-6. `Protected API -> Submit Exercise Answer`
-7. `Auth -> Refresh Token`
-8. `Auth -> Logout`
-
-## Verification
-
-Build:
+## Проверка
 
 ```powershell
 dotnet build LanguageLerning.slnx -p:UseSharedCompilation=false
-```
-
-Run regression tests:
-
-```powershell
 dotnet run --project LanguageLerning.Tests/LanguageLerning.Tests.csproj
 ```
 
-## Docker
-
-Build:
+Для Flutter:
 
 ```powershell
-docker build -t languagelearning-api .
+cd kazlang_app
+flutter analyze
 ```
-
-Run:
-
-```powershell
-docker run -p 8080:8080 `
-  -e ConnectionStrings__DefaultConnection="Server=host.docker.internal,1433;Database=LanguageLearningDb;User Id=sa;Password=StrongPwd123!;TrustServerCertificate=True;" `
-  -e Jwt__Issuer="LanguageLearning.API" `
-  -e Jwt__Audience="LanguageLearning.Client" `
-  -e Jwt__SigningKey="change-this-to-a-long-random-32-char-key" `
-  languagelearning-api
-```
-
-## Current gaps
-
-- Email verification and password reset are scaffolded at the domain level but not exposed as full flows yet.
-- Pagination/filtering/sorting, transactional idempotency, and richer SRS/content lifecycle remain follow-up work.
